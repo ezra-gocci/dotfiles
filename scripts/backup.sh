@@ -5,11 +5,13 @@
 # Interactive backup tool that saves configs, files, and keys
 # to iCloud and GitHub before a macOS factory reset.
 #
+# Compatible with macOS system bash (3.2+) — no associative arrays.
+#
 # Usage:
 #   ./scripts/backup.sh
 #
 
-set -euo pipefail
+set -eo pipefail
 
 # ═══════════════════════════════════════════════════════════
 # Colors & Formatting
@@ -35,30 +37,27 @@ BACKUP_DEST="$ICLOUD_DIR/mac-backup-$BACKUP_DATE"
 MANIFEST_DIR="$DOTFILES_DIR/manifests"
 CODE_DIR="$HOME/Code"
 
-# Backup item states (1=selected, 0=deselected)
-declare -A ITEMS
-ITEMS[brewfile]=1
-ITEMS[configs]=1
-ITEMS[ssh_keys]=1
-ITEMS[personal_files]=1
-ITEMS[git_repos]=1
-ITEMS[claude]=1
-ITEMS[app_prefs]=1
-ITEMS[credentials]=0
+# ─────────────────────────────────────────────────────────
+# Backup items — parallel indexed arrays (bash 3.2 compatible)
+# Index: 0=brewfile 1=configs 2=ssh_keys 3=personal_files
+#        4=git_repos 5=claude 6=app_prefs 7=credentials
+# ─────────────────────────────────────────────────────────
 
-# Item descriptions
-declare -A ITEM_LABELS
-ITEM_LABELS[brewfile]="Homebrew packages → Brewfile"
-ITEM_LABELS[configs]="Dotfile configs → git commit"
-ITEM_LABELS[ssh_keys]="SSH keys → encrypted zip to iCloud"
-ITEM_LABELS[personal_files]="Personal files → rsync to iCloud"
-ITEM_LABELS[git_repos]="Git repos → verify all pushed"
-ITEM_LABELS[claude]="Claude configs → git commit"
-ITEM_LABELS[app_prefs]="App preferences → export to dotfiles"
-ITEM_LABELS[credentials]="Credentials (kube/docker) → iCloud"
+ITEM_KEYS=(brewfile configs ssh_keys personal_files git_repos claude app_prefs credentials)
+ITEM_LABELS=(
+    "Homebrew packages → Brewfile"
+    "Dotfile configs → git commit"
+    "SSH keys → encrypted zip to iCloud"
+    "Personal files → rsync to iCloud"
+    "Git repos → verify all pushed"
+    "Claude configs → git commit"
+    "App preferences → export to dotfiles"
+    "Credentials (kube/docker) → iCloud"
+)
+# 1=selected, 0=deselected
+ITEM_STATE=(1 1 1 1 1 1 1 0)
 
-# Ordered keys for display
-ITEM_ORDER=(brewfile configs ssh_keys personal_files git_repos claude app_prefs credentials)
+ITEM_COUNT=${#ITEM_KEYS[@]}
 
 # ═══════════════════════════════════════════════════════════
 # Helper Functions
@@ -108,6 +107,11 @@ dir_size_bytes() {
     fi
 }
 
+is_selected() {
+    # Usage: is_selected index
+    [ "${ITEM_STATE[$1]}" -eq 1 ]
+}
+
 # ═══════════════════════════════════════════════════════════
 # Phase 1: Inventory
 # ═══════════════════════════════════════════════════════════
@@ -130,9 +134,12 @@ EOF
     echo ""
     echo -e "  ${BOLD}Homebrew:${NC}"
     if command -v brew &>/dev/null; then
-        local formulae_count=$(brew list --formula 2>/dev/null | wc -l | tr -d ' ')
-        local cask_count=$(brew list --cask 2>/dev/null | wc -l | tr -d ' ')
-        local tap_count=$(brew tap 2>/dev/null | wc -l | tr -d ' ')
+        local formulae_count
+        formulae_count=$(brew list --formula 2>/dev/null | wc -l | tr -d ' ')
+        local cask_count
+        cask_count=$(brew list --cask 2>/dev/null | wc -l | tr -d ' ')
+        local tap_count
+        tap_count=$(brew tap 2>/dev/null | wc -l | tr -d ' ')
         print_ok "${formulae_count} formulae, ${cask_count} casks, ${tap_count} taps"
     else
         print_warn "Homebrew not installed"
@@ -158,11 +165,8 @@ EOF
         "$HOME/.ssh/config"
     )
     for f in "${config_files[@]}"; do
-        if [ -f "$f" ]; then
-            config_count=$((config_count + 1))
-        fi
+        [ -f "$f" ] && config_count=$((config_count + 1))
     done
-    # Check how many are in dotfiles repo
     if [ -d "$DOTFILES_DIR" ]; then
         local repo_configs=(
             "$DOTFILES_DIR/zsh/.zshrc"
@@ -194,7 +198,7 @@ EOF
     if [ "$key_count" -gt 0 ]; then
         print_ok "${key_count} key pair(s)"
         for keyfile in "$HOME/.ssh"/id_*.pub; do
-            [ -f "$keyfile" ] && print_info "  $(basename "$keyfile"): $(cat "$keyfile" | awk '{print $3}')"
+            [ -f "$keyfile" ] && print_info "  $(basename "$keyfile"): $(awk '{print $3}' "$keyfile")"
         done
     else
         print_warn "No SSH keys found"
@@ -227,10 +231,14 @@ EOF
     # Personal files
     echo ""
     echo -e "  ${BOLD}Personal Files:${NC}"
-    local docs_size=$(dir_size_bytes "$HOME/Documents")
-    local music_size=$(dir_size_bytes "$HOME/Music")
-    local desktop_size=$(dir_size_bytes "$HOME/Desktop")
-    local downloads_size=$(dir_size_bytes "$HOME/Downloads")
+    local docs_size
+    docs_size=$(dir_size_bytes "$HOME/Documents")
+    local music_size
+    music_size=$(dir_size_bytes "$HOME/Music")
+    local desktop_size
+    desktop_size=$(dir_size_bytes "$HOME/Desktop")
+    local downloads_size
+    downloads_size=$(dir_size_bytes "$HOME/Downloads")
     [ "$docs_size" -gt 0 ] && print_ok "Documents: $(human_size "$docs_size")"
     [ "$music_size" -gt 0 ] && print_ok "Music: $(human_size "$music_size")"
     [ "$desktop_size" -gt 0 ] && print_ok "Desktop: $(human_size "$desktop_size")"
@@ -240,7 +248,8 @@ EOF
     echo ""
     echo -e "  ${BOLD}iCloud Drive:${NC}"
     if [ -d "$ICLOUD_DIR" ]; then
-        local icloud_size=$(dir_size_bytes "$ICLOUD_DIR")
+        local icloud_size
+        icloud_size=$(dir_size_bytes "$ICLOUD_DIR")
         print_ok "Available at: ~/Library/Mobile Documents/com~apple~CloudDocs/"
         print_ok "Current size: $(human_size "$icloud_size")"
     else
@@ -251,11 +260,13 @@ EOF
     echo ""
     echo -e "  ${BOLD}Claude:${NC}"
     if [ -d "$HOME/.claude" ]; then
-        local claude_size=$(dir_size_bytes "$HOME/.claude")
+        local claude_size
+        claude_size=$(dir_size_bytes "$HOME/.claude")
         print_ok "Claude Code config: $(human_size "$claude_size")"
     fi
     if [ -d "$HOME/Library/Application Support/Claude" ]; then
-        local claude_desktop_size=$(dir_size_bytes "$HOME/Library/Application Support/Claude")
+        local claude_desktop_size
+        claude_desktop_size=$(dir_size_bytes "$HOME/Library/Application Support/Claude")
         print_ok "Claude Desktop data: $(human_size "$claude_desktop_size")"
     fi
 
@@ -274,18 +285,19 @@ phase_selection() {
 
     while true; do
         # Display current selections
-        for i in "${!ITEM_ORDER[@]}"; do
-            local key="${ITEM_ORDER[$i]}"
+        local i=0
+        while [ $i -lt $ITEM_COUNT ]; do
             local num=$((i + 1))
-            if [ "${ITEMS[$key]}" -eq 1 ]; then
-                echo -e "  ${GREEN}[x]${NC} ${BOLD}${num}.${NC} ${ITEM_LABELS[$key]}"
+            if [ "${ITEM_STATE[$i]}" -eq 1 ]; then
+                echo -e "  ${GREEN}[x]${NC} ${BOLD}${num}.${NC} ${ITEM_LABELS[$i]}"
             else
-                echo -e "  ${DIM}[ ]${NC} ${BOLD}${num}.${NC} ${ITEM_LABELS[$key]}"
+                echo -e "  ${DIM}[ ]${NC} ${BOLD}${num}.${NC} ${ITEM_LABELS[$i]}"
             fi
+            i=$((i + 1))
         done
 
         echo ""
-        echo -ne "  ${CYAN}Toggle [1-${#ITEM_ORDER[@]}], ${BOLD}a${NC}${CYAN}=all, ${BOLD}n${NC}${CYAN}=none, ${BOLD}Enter${NC}${CYAN}=proceed: ${NC}"
+        echo -ne "  ${CYAN}Toggle [1-${ITEM_COUNT}], ${BOLD}a${NC}${CYAN}=all, ${BOLD}n${NC}${CYAN}=none, ${BOLD}Enter${NC}${CYAN}=proceed: ${NC}"
         read -r choice
 
         case "$choice" in
@@ -293,18 +305,17 @@ phase_selection() {
                 break
                 ;;
             a|A)
-                for key in "${ITEM_ORDER[@]}"; do ITEMS[$key]=1; done
+                i=0; while [ $i -lt $ITEM_COUNT ]; do ITEM_STATE[$i]=1; i=$((i + 1)); done
                 ;;
             n|N)
-                for key in "${ITEM_ORDER[@]}"; do ITEMS[$key]=0; done
+                i=0; while [ $i -lt $ITEM_COUNT ]; do ITEM_STATE[$i]=0; i=$((i + 1)); done
                 ;;
             [1-8])
                 local idx=$((choice - 1))
-                local key="${ITEM_ORDER[$idx]}"
-                if [ "${ITEMS[$key]}" -eq 1 ]; then
-                    ITEMS[$key]=0
+                if [ "${ITEM_STATE[$idx]}" -eq 1 ]; then
+                    ITEM_STATE[$idx]=0
                 else
-                    ITEMS[$key]=1
+                    ITEM_STATE[$idx]=1
                 fi
                 ;;
             *)
@@ -313,17 +324,16 @@ phase_selection() {
         esac
 
         # Clear the menu lines for redraw (move up)
-        for _ in "${ITEM_ORDER[@]}"; do
-            printf "\033[A\033[2K"
-        done
+        i=0; while [ $i -lt $ITEM_COUNT ]; do printf "\033[A\033[2K"; i=$((i + 1)); done
         printf "\033[A\033[2K"  # The prompt line
         printf "\033[A\033[2K"  # The blank line
     done
 
     # Count selected
     local selected=0
-    for key in "${ITEM_ORDER[@]}"; do
-        [ "${ITEMS[$key]}" -eq 1 ] && selected=$((selected + 1))
+    i=0; while [ $i -lt $ITEM_COUNT ]; do
+        [ "${ITEM_STATE[$i]}" -eq 1 ] && selected=$((selected + 1))
+        i=$((i + 1))
     done
 
     if [ "$selected" -eq 0 ]; then
@@ -357,7 +367,8 @@ backup_brewfile() {
 
     cd "$DOTFILES_DIR"
     brew bundle dump --force --describe --file="$DOTFILES_DIR/Brewfile"
-    local count=$(grep -c '^brew\|^cask\|^tap' "$DOTFILES_DIR/Brewfile" || true)
+    local count
+    count=$(grep -c '^brew\|^cask\|^tap' "$DOTFILES_DIR/Brewfile" || true)
     print_ok "Brewfile updated with ${count} entries"
 }
 
@@ -366,25 +377,20 @@ backup_configs() {
     print_header "Backing up dotfile configs"
 
     cd "$DOTFILES_DIR"
-
-    # Copy live configs back into repo directories
     local copied=0
 
-    # .zshrc
     if [ -f "$HOME/.zshrc" ]; then
         cp "$HOME/.zshrc" "$DOTFILES_DIR/zsh/.zshrc"
         print_ok ".zshrc"
         copied=$((copied + 1))
     fi
 
-    # .gitconfig
     if [ -f "$HOME/.gitconfig" ]; then
         cp "$HOME/.gitconfig" "$DOTFILES_DIR/git/.gitconfig"
         print_ok ".gitconfig"
         copied=$((copied + 1))
     fi
 
-    # tmux
     if [ -f "$HOME/.tmux.conf" ]; then
         mkdir -p "$DOTFILES_DIR/tmux"
         cp "$HOME/.tmux.conf" "$DOTFILES_DIR/tmux/.tmux.conf"
@@ -392,21 +398,18 @@ backup_configs() {
         copied=$((copied + 1))
     fi
 
-    # starship
     if [ -f "$HOME/.config/starship.toml" ]; then
         cp "$HOME/.config/starship.toml" "$DOTFILES_DIR/starship/starship.toml"
         print_ok "starship.toml"
         copied=$((copied + 1))
     fi
 
-    # wezterm
     if [ -f "$HOME/.config/wezterm/wezterm.lua" ]; then
         cp "$HOME/.config/wezterm/wezterm.lua" "$DOTFILES_DIR/wezterm/wezterm.lua"
         print_ok "wezterm.lua"
         copied=$((copied + 1))
     fi
 
-    # nvim
     if [ -f "$HOME/.config/nvim/init.lua" ]; then
         mkdir -p "$DOTFILES_DIR/nvim"
         cp "$HOME/.config/nvim/init.lua" "$DOTFILES_DIR/nvim/init.lua"
@@ -419,7 +422,6 @@ backup_configs() {
         copied=$((copied + 1))
     fi
 
-    # atuin
     if [ -f "$HOME/.config/atuin/config.toml" ]; then
         mkdir -p "$DOTFILES_DIR/atuin"
         cp "$HOME/.config/atuin/config.toml" "$DOTFILES_DIR/atuin/config.toml"
@@ -427,7 +429,6 @@ backup_configs() {
         copied=$((copied + 1))
     fi
 
-    # btop
     if [ -f "$HOME/.config/btop/btop.conf" ]; then
         mkdir -p "$DOTFILES_DIR/btop"
         cp "$HOME/.config/btop/btop.conf" "$DOTFILES_DIR/btop/btop.conf"
@@ -435,7 +436,6 @@ backup_configs() {
         copied=$((copied + 1))
     fi
 
-    # mise
     if [ -f "$HOME/.config/mise/config.toml" ]; then
         mkdir -p "$DOTFILES_DIR/mise"
         cp "$HOME/.config/mise/config.toml" "$DOTFILES_DIR/mise/config.toml"
@@ -443,7 +443,6 @@ backup_configs() {
         copied=$((copied + 1))
     fi
 
-    # zed
     if [ -f "$HOME/.config/zed/settings.json" ]; then
         mkdir -p "$DOTFILES_DIR/zed"
         cp "$HOME/.config/zed/settings.json" "$DOTFILES_DIR/zed/settings.json"
@@ -451,7 +450,6 @@ backup_configs() {
         copied=$((copied + 1))
     fi
 
-    # ssh config (NOT keys)
     if [ -f "$HOME/.ssh/config" ]; then
         mkdir -p "$DOTFILES_DIR/ssh"
         cp "$HOME/.ssh/config" "$DOTFILES_DIR/ssh/config"
@@ -483,11 +481,14 @@ backup_ssh_keys() {
     echo -e "  ${YELLOW}Remember this password — you'll need it to restore.${NC}"
     echo ""
 
-    # Create encrypted zip
-    cd "$HOME/.ssh"
-    zip -e "$BACKUP_DEST/ssh-keys-encrypted.zip" "${key_files[@]/#$HOME\/.ssh\//}" 2>/dev/null
+    # Build list of relative filenames for zip
+    local rel_files=()
+    for f in "${key_files[@]}"; do
+        rel_files+=("$(basename "$f")")
+    done
 
-    if [ $? -eq 0 ]; then
+    cd "$HOME/.ssh"
+    if zip -e "$BACKUP_DEST/ssh-keys-encrypted.zip" "${rel_files[@]}" 2>/dev/null; then
         print_ok "SSH keys encrypted and saved to iCloud"
         print_info "Location: $BACKUP_DEST/ssh-keys-encrypted.zip"
     else
@@ -519,8 +520,10 @@ backup_personal_files() {
     fi
 
     for dir in "${dirs_to_backup[@]}"; do
-        local dirname=$(basename "$dir")
-        local size=$(dir_size_bytes "$dir")
+        local dirname
+        dirname=$(basename "$dir")
+        local size
+        size=$(dir_size_bytes "$dir")
         echo -ne "  ${CYAN}Syncing ${dirname} ($(human_size "$size"))...${NC}"
         rsync -a --progress "$dir/" "$BACKUP_DEST/$dirname/" 2>/dev/null | tail -1
         echo -e "\r  ${GREEN}✓${NC} ${dirname} ($(human_size "$size"))                    "
@@ -546,32 +549,37 @@ verify_git_repos() {
             continue
         fi
 
-        local repo_name=$(basename "$dir")
+        local repo_name
+        repo_name=$(basename "$dir")
         cd "$dir"
 
-        local status=""
-        local issues=()
+        local issues=""
 
         # Check for uncommitted changes
         if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-            issues+=("uncommitted changes")
+            issues="uncommitted changes"
         fi
 
         # Check for unpushed commits
-        local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+        local branch
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
         if [ -n "$branch" ]; then
-            local unpushed=$(git log "origin/${branch}..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' ')
+            local unpushed
+            unpushed=$(git log "origin/${branch}..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' ')
             if [ "$unpushed" -gt 0 ]; then
-                issues+=("${unpushed} unpushed commit(s)")
+                if [ -n "$issues" ]; then
+                    issues="${issues}, ${unpushed} unpushed commit(s)"
+                else
+                    issues="${unpushed} unpushed commit(s)"
+                fi
             fi
         fi
 
-        if [ ${#issues[@]} -eq 0 ]; then
+        if [ -z "$issues" ]; then
             print_ok "${repo_name} — clean"
         else
             all_clean=false
-            local issue_str=$(IFS=", "; echo "${issues[*]}")
-            print_warn "${repo_name} — ${issue_str}"
+            print_warn "${repo_name} — ${issues}"
         fi
     done
 
@@ -597,7 +605,6 @@ backup_claude() {
     cd "$DOTFILES_DIR"
     local copied=0
 
-    # Claude Code settings
     mkdir -p "$DOTFILES_DIR/claude/claude-code"
     if [ -f "$HOME/.claude/settings.json" ]; then
         cp "$HOME/.claude/settings.json" "$DOTFILES_DIR/claude/claude-code/settings.json"
@@ -610,7 +617,6 @@ backup_claude() {
         copied=$((copied + 1))
     fi
 
-    # Claude Desktop config
     mkdir -p "$DOTFILES_DIR/claude/claude-desktop"
     local claude_desktop_dir="$HOME/Library/Application Support/Claude"
     if [ -d "$claude_desktop_dir" ]; then
@@ -623,14 +629,14 @@ backup_claude() {
         done
     fi
 
-    # Project memory files
     mkdir -p "$DOTFILES_DIR/claude/project-memory"
     if [ -d "$HOME/.claude/projects" ]; then
         for projdir in "$HOME/.claude/projects"/*/; do
             if [ -f "${projdir}memory/MEMORY.md" ]; then
-                local proj_name=$(basename "$projdir")
-                # Extract project name from path encoding
-                local friendly_name=$(echo "$proj_name" | sed 's/^-Users-[^-]*-Code-//' | sed 's/^-Users-[^-]*-//')
+                local proj_name
+                proj_name=$(basename "$projdir")
+                local friendly_name
+                friendly_name=$(echo "$proj_name" | sed 's/^-Users-[^-]*-Code-//' | sed 's/^-Users-[^-]*-//')
                 mkdir -p "$DOTFILES_DIR/claude/project-memory/$friendly_name"
                 cp "${projdir}memory/MEMORY.md" "$DOTFILES_DIR/claude/project-memory/$friendly_name/"
                 print_ok "Project memory: $friendly_name"
@@ -648,7 +654,6 @@ backup_app_prefs() {
 
     local exported=0
 
-    # iTerm2
     if defaults read com.googlecode.iterm2 &>/dev/null; then
         mkdir -p "$DOTFILES_DIR/iterm2"
         defaults export com.googlecode.iterm2 "$DOTFILES_DIR/iterm2/com.googlecode.iterm2.plist"
@@ -667,7 +672,6 @@ backup_credentials() {
 
     local backed_up=0
 
-    # Kubernetes config
     if [ -f "$HOME/.kube/config" ]; then
         mkdir -p "$BACKUP_DEST/credentials"
         cp "$HOME/.kube/config" "$BACKUP_DEST/credentials/kube-config"
@@ -675,7 +679,6 @@ backup_credentials() {
         backed_up=$((backed_up + 1))
     fi
 
-    # Docker config (not credentials, just config)
     if [ -f "$HOME/.docker/config.json" ]; then
         mkdir -p "$BACKUP_DEST/credentials"
         cp "$HOME/.docker/config.json" "$BACKUP_DEST/credentials/docker-config.json"
@@ -700,15 +703,21 @@ phase_manifest() {
 
     mkdir -p "$MANIFEST_DIR"
 
-    # Gather data for manifest
-    local hostname=$(scutil --get ComputerName 2>/dev/null || hostname)
-    local macos_ver=$(sw_vers -productVersion 2>/dev/null || echo "unknown")
-    local chip=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "unknown")
-    local formulae_count=$(brew list --formula 2>/dev/null | wc -l | tr -d ' ')
-    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local hostname
+    hostname=$(scutil --get ComputerName 2>/dev/null || hostname)
+    local macos_ver
+    macos_ver=$(sw_vers -productVersion 2>/dev/null || echo "unknown")
+    local chip
+    chip=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "unknown")
+    local formulae_count
+    formulae_count=$(brew list --formula 2>/dev/null | wc -l | tr -d ' ')
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-    # Build JSON manifest
     local manifest_file="$MANIFEST_DIR/backup-${BACKUP_DATE}.json"
+
+    # Helper to emit "true"/"false" from index
+    tf() { [ "${ITEM_STATE[$1]}" -eq 1 ] && echo "true" || echo "false"; }
 
     cat > "$manifest_file" << MANIFEST_EOF
 {
@@ -721,32 +730,32 @@ phase_manifest() {
   },
   "backup_items": {
     "brewfile": {
-      "saved": $([ "${ITEMS[brewfile]}" -eq 1 ] && echo "true" || echo "false"),
+      "saved": $(tf 0),
       "formulae_count": ${formulae_count}
     },
     "configs": {
-      "saved": $([ "${ITEMS[configs]}" -eq 1 ] && echo "true" || echo "false")
+      "saved": $(tf 1)
     },
     "ssh_keys": {
-      "saved": $([ "${ITEMS[ssh_keys]}" -eq 1 ] && echo "true" || echo "false"),
+      "saved": $(tf 2),
       "location": "icloud",
       "encrypted": true
     },
     "personal_files": {
-      "saved": $([ "${ITEMS[personal_files]}" -eq 1 ] && echo "true" || echo "false"),
+      "saved": $(tf 3),
       "location": "icloud"
     },
     "git_repos": {
-      "verified": $([ "${ITEMS[git_repos]}" -eq 1 ] && echo "true" || echo "false")
+      "verified": $(tf 4)
     },
     "claude": {
-      "saved": $([ "${ITEMS[claude]}" -eq 1 ] && echo "true" || echo "false")
+      "saved": $(tf 5)
     },
     "app_prefs": {
-      "saved": $([ "${ITEMS[app_prefs]}" -eq 1 ] && echo "true" || echo "false")
+      "saved": $(tf 6)
     },
     "credentials": {
-      "saved": $([ "${ITEMS[credentials]}" -eq 1 ] && echo "true" || echo "false"),
+      "saved": $(tf 7),
       "location": "icloud"
     }
   },
@@ -760,7 +769,8 @@ MANIFEST_EOF
     # Git commit and push
     cd "$DOTFILES_DIR"
     git add -A
-    local changes=$(git status --porcelain | wc -l | tr -d ' ')
+    local changes
+    changes=$(git status --porcelain | wc -l | tr -d ' ')
 
     if [ "$changes" -gt 0 ]; then
         git commit -m "backup: pre-reset backup ${BACKUP_DATE}
@@ -774,7 +784,8 @@ Machine: ${hostname} (${macos_ver}, ${chip})"
         read -r push_confirm
         if [[ ! "$push_confirm" =~ ^[Nn] ]]; then
             git push origin main
-            local sha=$(git rev-parse --short HEAD)
+            local sha
+            sha=$(git rev-parse --short HEAD)
             print_ok "Pushed to GitHub (${sha})"
         fi
     else
@@ -799,21 +810,21 @@ EOF
     echo -e "${NC}"
 
     echo -e "  ${BOLD}Saved to GitHub:${NC}"
-    [ "${ITEMS[brewfile]}" -eq 1 ] && echo "    ✓ Brewfile"
-    [ "${ITEMS[configs]}" -eq 1 ] && echo "    ✓ Dotfile configs"
-    [ "${ITEMS[claude]}" -eq 1 ] && echo "    ✓ Claude configs"
-    [ "${ITEMS[app_prefs]}" -eq 1 ] && echo "    ✓ App preferences"
+    is_selected 0 && echo "    ✓ Brewfile"
+    is_selected 1 && echo "    ✓ Dotfile configs"
+    is_selected 5 && echo "    ✓ Claude configs"
+    is_selected 6 && echo "    ✓ App preferences"
     echo "    ✓ Backup manifest"
 
     echo ""
     echo -e "  ${BOLD}Saved to iCloud:${NC}"
-    [ "${ITEMS[ssh_keys]}" -eq 1 ] && echo "    ✓ SSH keys (encrypted)"
-    [ "${ITEMS[personal_files]}" -eq 1 ] && echo "    ✓ Personal files"
-    [ "${ITEMS[credentials]}" -eq 1 ] && echo "    ✓ Credentials"
+    is_selected 2 && echo "    ✓ SSH keys (encrypted)"
+    is_selected 3 && echo "    ✓ Personal files"
+    is_selected 7 && echo "    ✓ Credentials"
 
     echo ""
     echo -e "  ${BOLD}Verified:${NC}"
-    [ "${ITEMS[git_repos]}" -eq 1 ] && echo "    ✓ Git repos pushed"
+    is_selected 4 && echo "    ✓ Git repos pushed"
 
     echo ""
     echo -e "  ${YELLOW}📋 Before factory reset, verify:${NC}"
@@ -836,7 +847,6 @@ EOF
 # ═══════════════════════════════════════════════════════════
 
 main() {
-    # Ensure we're in the dotfiles directory
     if [ ! -d "$DOTFILES_DIR" ]; then
         echo -e "${RED}Error: Dotfiles directory not found at $DOTFILES_DIR${NC}"
         echo "Set DOTFILES_DIR environment variable or clone your dotfiles first."
@@ -852,14 +862,14 @@ main() {
     # Phase 3: Execute selected backups
     print_header "Phase 3: Executing Backups"
 
-    [ "${ITEMS[brewfile]}" -eq 1 ] && backup_brewfile
-    [ "${ITEMS[configs]}" -eq 1 ] && backup_configs
-    [ "${ITEMS[ssh_keys]}" -eq 1 ] && backup_ssh_keys
-    [ "${ITEMS[personal_files]}" -eq 1 ] && backup_personal_files
-    [ "${ITEMS[git_repos]}" -eq 1 ] && verify_git_repos
-    [ "${ITEMS[claude]}" -eq 1 ] && backup_claude
-    [ "${ITEMS[app_prefs]}" -eq 1 ] && backup_app_prefs
-    [ "${ITEMS[credentials]}" -eq 1 ] && backup_credentials
+    is_selected 0 && backup_brewfile
+    is_selected 1 && backup_configs
+    is_selected 2 && backup_ssh_keys
+    is_selected 3 && backup_personal_files
+    is_selected 4 && verify_git_repos
+    is_selected 5 && backup_claude
+    is_selected 6 && backup_app_prefs
+    is_selected 7 && backup_credentials
 
     # Phase 4: Manifest & commit
     phase_manifest
