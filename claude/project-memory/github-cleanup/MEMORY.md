@@ -30,6 +30,11 @@
 - gh visibility flag needs: --accept-visibility-change-consequences
 - gh repo rename needs: --yes flag
 
+## Session Archive (2026-02-19)
+- 16 Claude Code + Cowork sessions extracted to claude-vault/sessions/
+- Claude config backed up to dotfiles/claude/
+- Restore guide: dotfiles/RESTORE-CHECKLIST.md
+
 ## Repo Cleanup Project
 - Working dir: `/Users/Ezra/Code/github-cleanup`
 - Temp merge dir: `/tmp/github-cleanup-merges/`

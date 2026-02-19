@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-02-19T11:29:55Z",
+  "machine": {
+    "hostname": "Masina",
+    "macos_version": "26.3",
+    "chip": "Apple M1"
+  },
+  "backup_items": {
+    "brewfile": {
+      "saved": true,
+      "formulae_count": 103
+    },
+    "configs": {
+      "saved": true
+    },
+    "ssh_keys": {
+      "saved": true,
+      "location": "icloud",
+      "encrypted": true
+    },
+    "personal_files": {
+      "saved": true,
+      "location": "icloud"
+    },
+    "git_repos": {
+      "verified": true
+    },
+    "claude": {
+      "saved": true
+    },
+    "app_prefs": {
+      "saved": true
+    },
+    "credentials": {
+      "saved": true,
+      "location": "icloud"
+    }
+  },
+  "icloud_backup_dir": "/Users/Ezra/Library/Mobile Documents/com~apple~CloudDocs/mac-backup-20260219",
+  "dotfiles_repo": "https://github.com/ezra-gocci/dotfiles.git"
+}
