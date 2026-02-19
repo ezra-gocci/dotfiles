@@ -88,12 +88,13 @@ print_info() {
 
 human_size() {
     local bytes=$1
+    # Force C locale so printf always uses '.' as decimal separator
     if [ "$bytes" -ge 1073741824 ]; then
-        printf "%.1f GB" "$(echo "$bytes / 1073741824" | bc -l)"
+        LC_NUMERIC=C printf "%.1f GB" "$(echo "$bytes / 1073741824" | bc -l)"
     elif [ "$bytes" -ge 1048576 ]; then
-        printf "%.1f MB" "$(echo "$bytes / 1048576" | bc -l)"
+        LC_NUMERIC=C printf "%.1f MB" "$(echo "$bytes / 1048576" | bc -l)"
     elif [ "$bytes" -ge 1024 ]; then
-        printf "%.0f KB" "$(echo "$bytes / 1024" | bc -l)"
+        LC_NUMERIC=C printf "%.0f KB" "$(echo "$bytes / 1024" | bc -l)"
     else
         printf "%d B" "$bytes"
     fi
