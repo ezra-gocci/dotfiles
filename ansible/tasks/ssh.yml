@@ -97,3 +97,33 @@
   ansible.builtin.debug:
     msg: "SSH key already exists at ~/.ssh/id_ed25519 — skipping restoration"
   when: ssh_key.stat.exists
+
+# ─── GitHub CLI Authentication ────────────────────────────
+
+- name: Check if gh CLI is authenticated
+  ansible.builtin.shell: gh auth status 2>&1
+  register: gh_auth
+  changed_when: false
+  failed_when: false
+
+- name: Authenticate gh CLI with GitHub
+  ansible.builtin.shell: |
+    gh auth login --hostname github.com --git-protocol ssh --web
+  when: gh_auth.rc != 0
+
+- name: Set git remote to SSH protocol
+  ansible.builtin.shell: |
+    gh auth setup-git
+  when: gh_auth.rc != 0
+  changed_when: true
+
+- name: Verify gh auth
+  ansible.builtin.shell: gh auth status 2>&1
+  register: gh_verify
+  changed_when: false
+  failed_when: false
+
+- name: Display gh auth status
+  ansible.builtin.debug:
+    msg: "{{ gh_verify.stdout_lines[0] | default('GitHub CLI: authenticated') }}"
+  when: gh_verify.rc == 0
