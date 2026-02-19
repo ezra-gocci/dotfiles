@@ -7,7 +7,7 @@
 # Specific tags:   ansible-playbook main.yml -i inventory.yml --tags dock --ask-become-pass
 #
 # Available tags:
-#   homebrew, dotfiles, mise, git, neovim, macos, dock, claude, post-restore
+#   homebrew, dotfiles, ssh, mise, git, neovim, macos, dock, claude, post-restore
 # ═══════════════════════════════════════════════════════════
 
 - name: Configure macOS development environment
@@ -32,6 +32,10 @@
     - name: Install dotfile configs
       ansible.builtin.import_tasks: tasks/dotfiles.yml
       tags: [dotfiles, configs]
+
+    - name: Restore SSH keys from iCloud backup
+      ansible.builtin.import_tasks: tasks/ssh.yml
+      tags: [ssh, keys]
 
     - name: Install language runtimes via mise
       ansible.builtin.import_tasks: tasks/mise.yml
