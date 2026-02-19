@@ -3,7 +3,7 @@
 
 - name: Install packages from Brewfile
   ansible.builtin.shell: |
-    brew bundle --file="{{ dotfiles_dir }}/Brewfile" --no-lock
+    brew bundle --file="{{ dotfiles_dir }}/Brewfile"
   register: brew_result
   changed_when: "'Installing' in brew_result.stdout"
 
