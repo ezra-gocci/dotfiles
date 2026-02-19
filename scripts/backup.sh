@@ -88,13 +88,13 @@ print_info() {
 
 human_size() {
     local bytes=$1
-    # Force C locale so printf always uses '.' as decimal separator
+    # Use awk for formatting — avoids bash 3.2 printf locale issues entirely
     if [ "$bytes" -ge 1073741824 ]; then
-        LC_NUMERIC=C printf "%.1f GB" "$(echo "$bytes / 1073741824" | bc -l)"
+        awk "BEGIN { printf \"%.1f GB\", $bytes / 1073741824 }"
     elif [ "$bytes" -ge 1048576 ]; then
-        LC_NUMERIC=C printf "%.1f MB" "$(echo "$bytes / 1048576" | bc -l)"
+        awk "BEGIN { printf \"%.1f MB\", $bytes / 1048576 }"
     elif [ "$bytes" -ge 1024 ]; then
-        LC_NUMERIC=C printf "%.0f KB" "$(echo "$bytes / 1024" | bc -l)"
+        awk "BEGIN { printf \"%.0f KB\", $bytes / 1024 }"
     else
         printf "%d B" "$bytes"
     fi
@@ -784,7 +784,7 @@ Machine: ${hostname} (${macos_ver}, ${chip})"
         echo -ne "  ${CYAN}Push to GitHub? [Y/n]: ${NC}"
         read -r push_confirm
         if [[ ! "$push_confirm" =~ ^[Nn] ]]; then
-            git push origin main
+            git push origin HEAD
             local sha
             sha=$(git rev-parse --short HEAD)
             print_ok "Pushed to GitHub (${sha})"
