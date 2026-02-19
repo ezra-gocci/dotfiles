@@ -1,0 +1,11 @@
+{
+  "preferences": {
+    "quickEntryDictationShortcut": "capslock",
+    "localAgentModeTrustedFolders": [
+      "/Users/Ezra/Downloads/claude-cleanup",
+      "/Users/Ezra/Documents/RecordingPlan"
+    ],
+    "coworkScheduledTasksEnabled": false,
+    "sidebarMode": "code"
+  }
+}
