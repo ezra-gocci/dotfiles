@@ -8,21 +8,21 @@
     state: directory
     mode: "0755"
   loop:
-    - "{{ ansible_env.HOME }}/.config/wezterm"
-    - "{{ ansible_env.HOME }}/.config/nvim"
-    - "{{ ansible_env.HOME }}/.config/atuin"
-    - "{{ ansible_env.HOME }}/.config/btop"
-    - "{{ ansible_env.HOME }}/.config/mise"
-    - "{{ ansible_env.HOME }}/.config/zed"
-    - "{{ ansible_env.HOME }}/.ssh"
-    - "{{ ansible_env.HOME }}/.claude"
+    - "{{ ansible_facts['env'].HOME }}/.config/wezterm"
+    - "{{ ansible_facts['env'].HOME }}/.config/nvim"
+    - "{{ ansible_facts['env'].HOME }}/.config/atuin"
+    - "{{ ansible_facts['env'].HOME }}/.config/btop"
+    - "{{ ansible_facts['env'].HOME }}/.config/mise"
+    - "{{ ansible_facts['env'].HOME }}/.config/zed"
+    - "{{ ansible_facts['env'].HOME }}/.ssh"
+    - "{{ ansible_facts['env'].HOME }}/.claude"
 
 # ─── Symlinked configs ───────────────────────────────────
 
 - name: Symlink .zshrc
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/zsh/.zshrc"
-    dest: "{{ ansible_env.HOME }}/.zshrc"
+    dest: "{{ ansible_facts['env'].HOME }}/.zshrc"
     state: link
     force: true
   when: install_zshrc
@@ -30,7 +30,7 @@
 - name: Symlink .gitconfig
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/git/.gitconfig"
-    dest: "{{ ansible_env.HOME }}/.gitconfig"
+    dest: "{{ ansible_facts['env'].HOME }}/.gitconfig"
     state: link
     force: true
   when: install_gitconfig
@@ -38,7 +38,7 @@
 - name: Symlink WezTerm config
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/wezterm/wezterm.lua"
-    dest: "{{ ansible_env.HOME }}/.config/wezterm/wezterm.lua"
+    dest: "{{ ansible_facts['env'].HOME }}/.config/wezterm/wezterm.lua"
     state: link
     force: true
   when: install_wezterm_config
@@ -46,7 +46,7 @@
 - name: Symlink Starship config
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/starship/starship.toml"
-    dest: "{{ ansible_env.HOME }}/.config/starship.toml"
+    dest: "{{ ansible_facts['env'].HOME }}/.config/starship.toml"
     state: link
     force: true
   when: install_starship_config
@@ -54,7 +54,7 @@
 - name: Symlink tmux config
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/tmux/.tmux.conf"
-    dest: "{{ ansible_env.HOME }}/.tmux.conf"
+    dest: "{{ ansible_facts['env'].HOME }}/.tmux.conf"
     state: link
     force: true
   when: install_tmux_config
@@ -62,7 +62,7 @@
 - name: Symlink Atuin config
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/atuin/config.toml"
-    dest: "{{ ansible_env.HOME }}/.config/atuin/config.toml"
+    dest: "{{ ansible_facts['env'].HOME }}/.config/atuin/config.toml"
     state: link
     force: true
   when: install_atuin_config
@@ -70,7 +70,7 @@
 - name: Symlink mise config
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/mise/config.toml"
-    dest: "{{ ansible_env.HOME }}/.config/mise/config.toml"
+    dest: "{{ ansible_facts['env'].HOME }}/.config/mise/config.toml"
     state: link
     force: true
   when: install_mise_config
@@ -78,7 +78,7 @@
 - name: Symlink Zed config
   ansible.builtin.file:
     src: "{{ dotfiles_dir }}/zed/settings.json"
-    dest: "{{ ansible_env.HOME }}/.config/zed/settings.json"
+    dest: "{{ ansible_facts['env'].HOME }}/.config/zed/settings.json"
     state: link
     force: true
   when: install_zed_config
@@ -88,14 +88,14 @@
 - name: Copy btop config
   ansible.builtin.copy:
     src: "{{ dotfiles_dir }}/btop/btop.conf"
-    dest: "{{ ansible_env.HOME }}/.config/btop/btop.conf"
+    dest: "{{ ansible_facts['env'].HOME }}/.config/btop/btop.conf"
     mode: "0644"
   when: install_btop_config
 
 - name: Copy SSH config
   ansible.builtin.copy:
     src: "{{ dotfiles_dir }}/ssh/config"
-    dest: "{{ ansible_env.HOME }}/.ssh/config"
+    dest: "{{ ansible_facts['env'].HOME }}/.ssh/config"
     mode: "0644"
   when: install_ssh_config
 

@@ -1,0 +1,99 @@
+---
+# ─── SSH Key Restoration ─────────────────────────────────
+#
+# Restores SSH keys from the encrypted iCloud backup created
+# by scripts/backup.sh. Prompts for the zip password.
+
+- name: Check if SSH key already exists
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519"
+  register: ssh_key
+
+- name: Find SSH key backup in iCloud
+  ansible.builtin.find:
+    paths: "{{ ansible_facts['env'].HOME }}/Library/Mobile Documents/com~apple~CloudDocs"
+    patterns: "ssh-keys-encrypted.zip"
+    recurse: true
+    depth: 3
+  register: ssh_backup
+  when: not ssh_key.stat.exists
+
+- name: Display backup location
+  ansible.builtin.debug:
+    msg: "Found SSH backup: {{ ssh_backup.files[0].path }}"
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+
+- name: Prompt for SSH key zip password
+  ansible.builtin.pause:
+    prompt: "Enter password for ssh-keys-encrypted.zip"
+    echo: false
+  register: zip_password
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+
+- name: Ensure .ssh directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts['env'].HOME }}/.ssh"
+    state: directory
+    mode: "0700"
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+
+- name: Extract SSH keys from encrypted backup
+  ansible.builtin.shell: |
+    unzip -o -P "{{ zip_password.user_input }}" "{{ ssh_backup.files[0].path }}" -d "{{ ansible_facts['env'].HOME }}/.ssh/"
+  no_log: true
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
+
+- name: Set SSH private key permissions
+  ansible.builtin.file:
+    path: "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519"
+    mode: "0600"
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+
+- name: Set SSH public key permissions
+  ansible.builtin.file:
+    path: "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519.pub"
+    mode: "0644"
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+
+- name: Set known_hosts permissions
+  ansible.builtin.file:
+    path: "{{ ansible_facts['env'].HOME }}/.ssh/known_hosts"
+    mode: "0644"
+  failed_when: false
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+
+- name: Add SSH key to agent
+  ansible.builtin.shell: |
+    eval "$(ssh-agent -s)" && ssh-add "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519"
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+
+- name: Test GitHub SSH connection
+  ansible.builtin.shell: ssh -T git@github.com 2>&1 || true
+  register: github_ssh
+  changed_when: false
+
+- name: Display SSH status
+  ansible.builtin.debug:
+    msg: "{{ 'GitHub SSH: OK' if 'successfully authenticated' in github_ssh.stdout else 'GitHub SSH: ' + github_ssh.stdout }}"
+
+- name: Skip notice (key already exists)
+  ansible.builtin.debug:
+    msg: "SSH key already exists at ~/.ssh/id_ed25519 — skipping restoration"
+  when: ssh_key.stat.exists

@@ -1,0 +1,33 @@
+---
+# ─── Language Runtimes via mise ──────────────────────────
+
+- name: Trust mise configs
+  ansible.builtin.shell: mise trust --all
+  environment:
+    MISE_YES: "1"
+  changed_when: true
+
+- name: Install mise runtimes (go, node, rust, uv, etc.)
+  ansible.builtin.shell: mise install --yes
+  environment:
+    MISE_YES: "1"
+  register: mise_install
+  changed_when: "'install' in mise_install.stderr"
+
+- name: Show active runtimes
+  ansible.builtin.shell: mise current
+  environment:
+    MISE_YES: "1"
+  register: mise_current
+  changed_when: false
+
+- name: Display active runtimes
+  ansible.builtin.debug:
+    msg: "{{ mise_current.stdout_lines }}"
+
+- name: Install goimports
+  ansible.builtin.shell: |
+    eval "$(mise activate bash)" && go install golang.org/x/tools/cmd/goimports@latest
+  args:
+    executable: /bin/bash
+  changed_when: true

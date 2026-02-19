@@ -3,7 +3,7 @@
 # Ansible Variables — edit this file to customize your setup
 # ═══════════════════════════════════════════════════════════
 
-dotfiles_dir: "{{ ansible_env.HOME }}/.dotfiles"
+dotfiles_dir: "{{ ansible_facts['env'].HOME }}/.dotfiles"
 dotfiles_repo: "https://github.com/ezra-gocci/dotfiles.git"
 
 # ─── Git ──────────────────────────────────────────────────
