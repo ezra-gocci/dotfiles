@@ -1,4 +1,3 @@
-tap "lizardbyte/homebrew"
 # Improved shell history for zsh, bash, fish and nushell
 brew "atuin"
 # Terminal bandwidth utilization tool
@@ -103,8 +102,6 @@ brew "zsh"
 brew "zsh-autosuggestions"
 # Fish shell like syntax highlighting for zsh
 brew "zsh-syntax-highlighting"
-# Self-hosted game stream host for Moonlight
-brew "lizardbyte/homebrew/sunshine"
 # Anthropic's official Claude AI desktop app
 cask "claude"
 # Terminal-based AI coding assistant
