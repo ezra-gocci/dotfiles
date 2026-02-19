@@ -129,6 +129,3 @@ cask "transmission"
 cask "wezterm"
 # Multiplayer code editor
 cask "zed"
-go "cmd/go"
-go "cmd/gofmt"
-go "golang.org/x/tools/cmd/goimports"
