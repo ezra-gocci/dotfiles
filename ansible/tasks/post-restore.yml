@@ -1,0 +1,39 @@
+---
+# ─── Post-Restore Guidance ────────────────────────────────
+
+- name: SSH key recovery instructions
+  ansible.builtin.debug:
+    msg: |
+      ═══ SSH Keys ═══
+      Your SSH keys were NOT stored in git (for security).
+      If you backed them up to iCloud:
+        1. ls ~/Library/Mobile\ Documents/com~apple~CloudDocs/mac-backup-*/
+        2. unzip ~/Library/Mobile\ Documents/com~apple~CloudDocs/mac-backup-*/ssh-keys-encrypted.zip
+        3. cp id_ed25519* ~/.ssh/ && chmod 600 ~/.ssh/id_ed25519
+        4. ssh-add ~/.ssh/id_ed25519
+
+- name: Repository clone commands
+  ansible.builtin.debug:
+    msg: |
+      ═══ Clone Your Repos ═══
+        mkdir -p ~/Code && cd ~/Code
+        gh auth login
+        gh repo clone ezra-gocci/fast-forward
+        gh repo clone ezra-gocci/cv
+        gh repo clone ezra-gocci/beat-em
+        gh repo clone ezra-gocci/lets-dance
+        gh repo clone ezra-gocci/investsmart
+        gh repo clone ezra-gocci/claude-vault
+        gh repo clone ezra-gocci/perfect-start
+        gh repo clone ezra-gocci/leet
+
+- name: App login reminders
+  ansible.builtin.debug:
+    msg: |
+      ═══ App Logins ═══
+        Claude Desktop  — sign in with Anthropic account
+        Claude Code     — run: claude login
+        GitHub CLI      — run: gh auth login
+        Tailscale       — run: tailscale up
+        Steam, Telegram, Obsidian — sign in manually
+        Google Chrome   — sign in to sync bookmarks/extensions

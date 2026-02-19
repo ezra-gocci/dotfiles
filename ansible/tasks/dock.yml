@@ -1,0 +1,31 @@
+---
+# ─── Dock Layout Configuration ────────────────────────────
+#
+# Removes all default Dock items and adds your preferred apps.
+# Requires dockutil (installed via Brewfile).
+
+- name: Check dockutil is installed
+  ansible.builtin.shell: command -v dockutil
+  register: dockutil_check
+  changed_when: false
+  failed_when: false
+
+- name: Install dockutil if missing
+  community.general.homebrew:
+    name: dockutil
+    state: present
+  when: dockutil_check.rc != 0
+
+- name: Remove all Dock items
+  ansible.builtin.shell: dockutil --remove all --no-restart
+  changed_when: true
+
+- name: Add apps to Dock
+  ansible.builtin.shell: "dockutil --add '{{ item }}' --no-restart"
+  loop: "{{ dock_apps }}"
+  when: item is exists
+  changed_when: true
+
+- name: Restart Dock
+  ansible.builtin.shell: killall Dock
+  changed_when: true

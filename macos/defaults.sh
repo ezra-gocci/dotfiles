@@ -186,6 +186,71 @@ defaults write com.apple.screencapture type -string "png"
 defaults write com.apple.screencapture disable-shadow -bool true
 
 # ============================================
+# Keyboard (additional)
+# ============================================
+
+# Disable press-and-hold for accent characters (enable key repeat)
+defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+
+# ============================================
+# Hot Corners
+# ============================================
+
+# Top-left: Mission Control
+defaults write com.apple.dock wvous-tl-corner -int 2
+defaults write com.apple.dock wvous-tl-modifier -int 0
+
+# Top-right: Desktop
+defaults write com.apple.dock wvous-tr-corner -int 4
+defaults write com.apple.dock wvous-tr-modifier -int 0
+
+# Bottom-left: Screen Saver
+defaults write com.apple.dock wvous-bl-corner -int 5
+defaults write com.apple.dock wvous-bl-modifier -int 0
+
+# Bottom-right: None
+defaults write com.apple.dock wvous-br-corner -int 0
+defaults write com.apple.dock wvous-br-modifier -int 0
+
+# ============================================
+# Energy & Display
+# ============================================
+
+# Battery: display sleep after 5 minutes
+sudo pmset -b displaysleep 5
+
+# Charger: display sleep after 10 minutes
+sudo pmset -c displaysleep 10
+
+# Charger: system never sleeps
+sudo pmset -c sleep 0
+
+# ============================================
+# Hostname
+# ============================================
+
+# Load .env if available for HOSTNAME_NAME
+if [ -z "$HOSTNAME_NAME" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    DOTFILES_ROOT="$(dirname "$SCRIPT_DIR")"
+    if [ -f "$DOTFILES_ROOT/.env.local" ]; then
+        # shellcheck disable=SC1091
+        source "$DOTFILES_ROOT/.env.local"
+    elif [ -f "$DOTFILES_ROOT/.env" ]; then
+        # shellcheck disable=SC1091
+        source "$DOTFILES_ROOT/.env"
+    fi
+fi
+
+if [ -n "$HOSTNAME_NAME" ]; then
+    echo "Setting hostname to: $HOSTNAME_NAME"
+    sudo scutil --set ComputerName "$HOSTNAME_NAME"
+    sudo scutil --set HostName "$HOSTNAME_NAME"
+    sudo scutil --set LocalHostName "$HOSTNAME_NAME"
+    sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "$HOSTNAME_NAME"
+fi
+
+# ============================================
 # Kill affected applications
 # ============================================
 

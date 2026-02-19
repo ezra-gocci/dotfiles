@@ -1,0 +1,58 @@
+---
+# ═══════════════════════════════════════════════════════════
+# macOS Development Environment — Ansible Playbook
+#
+# Full run:        ansible-playbook main.yml -i inventory.yml --ask-become-pass
+# Dry run:         ansible-playbook main.yml -i inventory.yml --check
+# Specific tags:   ansible-playbook main.yml -i inventory.yml --tags dock --ask-become-pass
+#
+# Available tags:
+#   homebrew, dotfiles, git, neovim, macos, dock, claude, post-restore
+# ═══════════════════════════════════════════════════════════
+
+- name: Configure macOS development environment
+  hosts: localhost
+  connection: local
+
+  vars_files:
+    - vars/main.yml
+
+  pre_tasks:
+    - name: Display system info
+      ansible.builtin.debug:
+        msg: >-
+          {{ ansible_distribution }} {{ ansible_distribution_version }}
+          ({{ ansible_architecture }}) — {{ ansible_hostname }}
+
+  tasks:
+    - name: Install Homebrew packages
+      ansible.builtin.import_tasks: tasks/homebrew.yml
+      tags: [homebrew, packages]
+
+    - name: Install dotfile configs
+      ansible.builtin.import_tasks: tasks/dotfiles.yml
+      tags: [dotfiles, configs]
+
+    - name: Configure Git
+      ansible.builtin.import_tasks: tasks/git.yml
+      tags: [git]
+
+    - name: Setup Neovim
+      ansible.builtin.import_tasks: tasks/neovim.yml
+      tags: [neovim, nvim]
+
+    - name: Apply macOS system defaults
+      ansible.builtin.import_tasks: tasks/macos.yml
+      tags: [macos, defaults]
+
+    - name: Configure Dock
+      ansible.builtin.import_tasks: tasks/dock.yml
+      tags: [dock]
+
+    - name: Restore Claude configs
+      ansible.builtin.import_tasks: tasks/claude.yml
+      tags: [claude]
+
+    - name: Post-restore guidance
+      ansible.builtin.import_tasks: tasks/post-restore.yml
+      tags: [post-restore, info]

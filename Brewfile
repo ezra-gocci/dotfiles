@@ -35,6 +35,8 @@ brew "fzf"
 brew "gh"
 # Distributed revision control system
 brew "git"
+# Tool for managing Dock items
+brew "dockutil"
 # Syntax-highlighting pager for git and diff output
 brew "git-delta"
 # Ping, but with a graph

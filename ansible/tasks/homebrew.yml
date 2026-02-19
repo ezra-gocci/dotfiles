@@ -1,0 +1,13 @@
+---
+# ─── Homebrew Packages ────────────────────────────────────
+
+- name: Install packages from Brewfile
+  ansible.builtin.shell: |
+    brew bundle --file="{{ dotfiles_dir }}/Brewfile" --no-lock
+  register: brew_result
+  changed_when: "'Installing' in brew_result.stdout"
+
+- name: Show Homebrew results
+  ansible.builtin.debug:
+    msg: "{{ brew_result.stdout_lines | last }}"
+  when: brew_result.stdout_lines | length > 0

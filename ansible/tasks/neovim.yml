@@ -1,0 +1,62 @@
+---
+# ─── Neovim Setup ─────────────────────────────────────────
+
+- name: Create Neovim config directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/nvim"
+    state: directory
+    mode: "0755"
+  when: install_neovim_config
+
+# ─── Custom config (from repo) ───────────────────────────
+
+- name: Symlink custom Neovim init.lua
+  ansible.builtin.file:
+    src: "{{ dotfiles_dir }}/nvim/init.lua"
+    dest: "{{ ansible_env.HOME }}/.config/nvim/init.lua"
+    state: link
+    force: true
+  when:
+    - install_neovim_config
+    - neovim_setup == "custom"
+
+- name: Copy lazy-lock.json (lazy.nvim rewrites this)
+  ansible.builtin.copy:
+    src: "{{ dotfiles_dir }}/nvim/lazy-lock.json"
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lazy-lock.json"
+    mode: "0644"
+  when:
+    - install_neovim_config
+    - neovim_setup == "custom"
+
+# ─── LazyVim distribution ────────────────────────────────
+
+- name: Clone LazyVim starter
+  ansible.builtin.git:
+    repo: "https://github.com/LazyVim/starter"
+    dest: "{{ ansible_env.HOME }}/.config/nvim"
+    version: main
+    force: true
+  when:
+    - install_neovim_config
+    - neovim_setup == "lazyvim"
+
+- name: Remove LazyVim .git (use our own version control)
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/nvim/.git"
+    state: absent
+  when:
+    - install_neovim_config
+    - neovim_setup == "lazyvim"
+
+# ─── Kickstart ────────────────────────────────────────────
+
+- name: Clone kickstart.nvim
+  ansible.builtin.git:
+    repo: "https://github.com/nvim-lua/kickstart.nvim.git"
+    dest: "{{ ansible_env.HOME }}/.config/nvim"
+    version: master
+    force: true
+  when:
+    - install_neovim_config
+    - neovim_setup == "kickstart"

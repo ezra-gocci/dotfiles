@@ -1,0 +1,76 @@
+---
+# ─── Claude Config Restoration ────────────────────────────
+
+- name: Create Claude directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ ansible_env.HOME }}/.claude"
+    - "{{ ansible_env.HOME }}/Library/Application Support/Claude"
+  when: install_claude_config
+
+# ─── Claude Code settings ────────────────────────────────
+
+- name: Copy Claude Code settings.json
+  ansible.builtin.copy:
+    src: "{{ dotfiles_dir }}/claude/claude-code/settings.json"
+    dest: "{{ ansible_env.HOME }}/.claude/settings.json"
+    mode: "0644"
+  when:
+    - install_claude_config
+    - "dotfiles_dir + '/claude/claude-code/settings.json' is exists"
+
+- name: Copy Claude Code settings.local.json
+  ansible.builtin.copy:
+    src: "{{ dotfiles_dir }}/claude/claude-code/settings.local.json"
+    dest: "{{ ansible_env.HOME }}/.claude/settings.local.json"
+    mode: "0644"
+  when:
+    - install_claude_config
+    - "dotfiles_dir + '/claude/claude-code/settings.local.json' is exists"
+
+# ─── Claude Desktop config ───────────────────────────────
+
+- name: Find Claude Desktop config files
+  ansible.builtin.find:
+    paths: "{{ dotfiles_dir }}/claude/claude-desktop"
+    patterns: "*.json"
+  register: claude_desktop_files
+  when: install_claude_config
+
+- name: Copy Claude Desktop configs
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ ansible_env.HOME }}/Library/Application Support/Claude/{{ item.path | basename }}"
+    mode: "0644"
+  loop: "{{ claude_desktop_files.files | default([]) }}"
+  when: install_claude_config
+
+# ─── Project memory files ────────────────────────────────
+
+- name: Find project memory directories
+  ansible.builtin.find:
+    paths: "{{ dotfiles_dir }}/claude/project-memory"
+    file_type: directory
+  register: memory_dirs
+  when: install_claude_config
+
+- name: Create project memory target directories
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.claude/projects/-Users-{{ ansible_env.USER }}-Code-{{ item.path | basename }}/memory"
+    state: directory
+    mode: "0755"
+  loop: "{{ memory_dirs.files | default([]) }}"
+  when: install_claude_config
+
+- name: Copy MEMORY.md files
+  ansible.builtin.copy:
+    src: "{{ item.path }}/MEMORY.md"
+    dest: "{{ ansible_env.HOME }}/.claude/projects/-Users-{{ ansible_env.USER }}-Code-{{ item.path | basename }}/memory/MEMORY.md"
+    mode: "0644"
+  loop: "{{ memory_dirs.files | default([]) }}"
+  when:
+    - install_claude_config
+    - "(item.path + '/MEMORY.md') is exists"

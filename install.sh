@@ -582,6 +582,45 @@ else
 fi
 
 # ============================================
+# Step 11.5: Configure Dock
+# ============================================
+
+print_step "Step 11.5: Configuring Dock"
+
+if [ "$CONFIGURE_DOCK" == "true" ] && command -v dockutil >/dev/null 2>&1; then
+    if [ "$DRY_RUN" == "false" ]; then
+        # Remove all default Dock items
+        dockutil --remove all --no-restart 2>/dev/null || true
+
+        # Add preferred apps (skip if not installed)
+        dock_apps=(
+            "/System/Applications/Launchpad.app"
+            "/Applications/WezTerm.app"
+            "/Applications/Google Chrome.app"
+            "/Applications/Claude.app"
+            "/Applications/Obsidian.app"
+            "/Applications/iTerm.app"
+            "/Applications/Zed.app"
+            "/System/Applications/System Settings.app"
+        )
+
+        for app in "${dock_apps[@]}"; do
+            if [ -d "$app" ]; then
+                dockutil --add "$app" --no-restart 2>/dev/null || true
+            fi
+        done
+
+        # Restart Dock to apply
+        killall Dock 2>/dev/null || true
+    fi
+    print_success "Dock configured with preferred apps"
+elif [ "$CONFIGURE_DOCK" != "true" ]; then
+    print_warning "Skipping Dock configuration (disabled)"
+else
+    print_warning "Skipping Dock configuration (dockutil not installed)"
+fi
+
+# ============================================
 # Step 12: Restore Claude Configs
 # ============================================
 
