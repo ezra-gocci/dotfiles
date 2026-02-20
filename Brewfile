@@ -16,6 +16,8 @@ brew "choose"
 brew "zstd"
 # Modern diagram scripting language that turns text to diagrams
 brew "d2"
+# Utility to configure multi-display resolutions and arrangements
+brew "displayplacer"
 # Command-line DNS Client for Humans
 brew "doggo"
 # Disk Usage/Free Utility - a better 'df' alternative
