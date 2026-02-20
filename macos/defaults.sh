@@ -8,7 +8,7 @@
 echo "Applying macOS defaults..."
 
 # Close System Preferences to prevent overriding
-osascript -e 'tell application "System Preferences" to quit'
+osascript -e 'tell application "System Settings" to quit' 2>/dev/null || true
 
 # ============================================
 # General UI/UX
@@ -36,13 +36,41 @@ defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
 defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
 # ============================================
+# Appearance
+# ============================================
+
+# Set appearance to Auto (light/dark)
+defaults write NSGlobalDomain AppleInterfaceStyleSwitchesAutomatically -bool true
+
+# Set sidebar icon size to Small
+defaults write NSGlobalDomain NSTableViewDefaultSizeMode -int 1
+
+# Scroll bar: jump to the spot that's clicked
+defaults write NSGlobalDomain AppleScrollerPagingBehavior -int 1
+
+# ============================================
 # Trackpad, mouse, keyboard
 # ============================================
 
 # Trackpad: enable tap to click for this user and for the login screen
 defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
 defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
 defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# Trackpad: set firm click
+defaults write com.apple.AppleMultitouchTrackpad FirstClickThreshold -int 2
+defaults write com.apple.AppleMultitouchTrackpad SecondClickThreshold -int 2
+
+# Trackpad: enable three-finger drag
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerDrag -bool true
+
+# Trackpad: set tracking speed
+defaults write NSGlobalDomain com.apple.trackpad.scaling -float 1.5
+
+# Enable spring-loading
+defaults write NSGlobalDomain com.apple.springing.enabled -bool true
 
 # Increase sound quality for Bluetooth headphones/headsets
 defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 40
@@ -53,6 +81,42 @@ defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
 # Set a blazingly fast keyboard repeat rate
 defaults write NSGlobalDomain KeyRepeat -int 2
 defaults write NSGlobalDomain InitialKeyRepeat -int 15
+
+# Disable press-and-hold for accent characters (enable key repeat)
+defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+
+# Globe key: Change Input Source
+defaults write com.apple.HIToolbox AppleFnUsageType -int 1
+
+# ============================================
+# Input Sources
+# ============================================
+
+# Configure keyboard input sources: ABC, Russian-PC, Armenian-HM QWERTY
+defaults write com.apple.HIToolbox AppleEnabledInputSources -array \
+  '{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = 252; "KeyboardLayout Name" = ABC; }' \
+  '{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = 19458; "KeyboardLayout Name" = RussianWin; }' \
+  '{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = -28161; "KeyboardLayout Name" = "Armenian-HM QWERTY"; }' \
+  '{ "Bundle ID" = "com.apple.CharacterPaletteIM"; InputSourceKind = "Non Keyboard Input Method"; }' \
+  '{ "Bundle ID" = "com.apple.inputmethod.EmojiFunctionRowItem"; InputSourceKind = "Non Keyboard Input Method"; }'
+
+# ============================================
+# Language & Region
+# ============================================
+
+# Preferred languages: English, Russian, Armenian
+defaults write NSGlobalDomain AppleLanguages -array "en-AM" "ru-AM" "hy-AM"
+
+# Locale: English (Armenia)
+defaults write NSGlobalDomain AppleLocale -string "en_AM"
+
+# Metric system
+defaults write NSGlobalDomain AppleMeasurementUnits -string "Centimeters"
+defaults write NSGlobalDomain AppleMetricSystem -bool true
+defaults write NSGlobalDomain AppleTemperatureUnit -string "Celsius"
+
+# Date format: y/M/d
+defaults write NSGlobalDomain AppleICUDateFormatStrings -dict 1 "y/M/d"
 
 # ============================================
 # Finder
@@ -97,7 +161,23 @@ sudo chflags nohidden /Volumes
 # ============================================
 
 # Set the icon size of Dock items
-defaults write com.apple.dock tilesize -int 48
+defaults write com.apple.dock tilesize -float 36
+
+# Enable magnification
+defaults write com.apple.dock magnification -bool true
+defaults write com.apple.dock largesize -float 84
+
+# Dock position: left
+defaults write com.apple.dock orientation -string "left"
+
+# Minimize effect: Genie
+defaults write com.apple.dock mineffect -string "genie"
+
+# Title bar double-click: Zoom
+defaults write NSGlobalDomain AppleActionOnDoubleClick -string "Maximize"
+
+# Don't minimize windows into application icon
+defaults write com.apple.dock minimize-to-application -bool false
 
 # Don't automatically rearrange Spaces based on most recent use
 defaults write com.apple.dock mru-spaces -bool false
@@ -111,24 +191,99 @@ defaults write com.apple.dock autohide-time-modifier -float 0
 # Automatically hide and show the Dock
 defaults write com.apple.dock autohide -bool true
 
+# Animate opening applications
+defaults write com.apple.dock launchanim -bool true
+
+# Show indicators for open applications
+defaults write com.apple.dock show-process-indicators -bool true
+
 # Don't show recent applications in Dock
 defaults write com.apple.dock show-recents -bool false
+
+# ============================================
+# Desktop Icons
+# ============================================
+
+# Desktop stacks grouped by Kind
+defaults write com.apple.finder DesktopViewSettings -dict-add GroupBy -string Kind
+
+# ============================================
+# Desktop & Stage Manager
+# ============================================
+
+# Disable Stage Manager
+defaults write com.apple.WindowManager GloballyEnabled -bool false
+
+# Disable tiled window margins
+defaults write com.apple.WindowManager EnableTiledWindowMargins -bool false
+
+# Disable iPhone Widgets
+defaults write com.apple.chronod remoteWidgetsEnabled -bool false
+
+# ============================================
+# Window Management
+# ============================================
+
+# Close windows when quitting application
+defaults write NSGlobalDomain NSQuitAlwaysKeepsWindows -bool false
+
+# ============================================
+# Menu Bar
+# ============================================
+
+# Auto-hide menu bar in full screen only
+defaults write NSGlobalDomain AppleMenuBarVisibleInFullscreenOnly -bool true
+
+# ============================================
+# Siri
+# ============================================
+
+# Disable Siri
+defaults write com.apple.assistant.support "Assistant Enabled" -bool false
+
+# ============================================
+# Accessibility
+# ============================================
+
+# Zoom: enable scroll gesture with Control modifier
+defaults write com.apple.universalaccess closeViewScrollWheelToggle -bool true
+
+# Zoom: enable trackpad gesture
+defaults write com.apple.universalaccess closeViewTrackpadGestureZoomEnabled -bool true
+
+# ============================================
+# Display
+# ============================================
+
+# Set display resolution to 1680x1050 (scaled) if displayplacer is installed
+if command -v displayplacer >/dev/null 2>&1; then
+  DISPLAY_ID=$(displayplacer list 2>/dev/null | grep -m1 "Persistent screen id:" | awk '{print $NF}')
+  if [ -n "$DISPLAY_ID" ]; then
+    displayplacer "id:${DISPLAY_ID} res:1680x1050 scaling:on"
+  fi
+fi
+
+# ============================================
+# Login Items
+# ============================================
+
+# Add Claude and iTerm as login items
+osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/Claude.app", hidden:false}' 2>/dev/null || true
+osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/iTerm.app", hidden:false}' 2>/dev/null || true
 
 # ============================================
 # Safari & WebKit
 # ============================================
 
-# Privacy: don't send search queries to Apple
-defaults write com.apple.Safari UniversalSearchEnabled -bool false
-defaults write com.apple.Safari SuppressSearchSuggestions -bool true
-
-# Show the full URL in the address bar
-defaults write com.apple.Safari ShowFullURLInSmartSearchField -bool true
-
-# Enable the Develop menu and the Web Inspector
-defaults write com.apple.Safari IncludeDevelopMenu -bool true
-defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
-defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true
+# Safari preferences (sandboxed — must use full plist path)
+SAFARI_PLIST="$HOME/Library/Containers/com.apple.Safari/Data/Library/Preferences/com.apple.Safari.plist"
+if [ -f "$SAFARI_PLIST" ]; then
+  defaults write "$SAFARI_PLIST" UniversalSearchEnabled -bool false
+  defaults write "$SAFARI_PLIST" SuppressSearchSuggestions -bool true
+  defaults write "$SAFARI_PLIST" ShowFullURLInSmartSearchField -bool true
+  defaults write "$SAFARI_PLIST" IncludeDevelopMenu -bool true
+  defaults write "$SAFARI_PLIST" WebKitDeveloperExtrasEnabledPreferenceKey -bool true
+fi
 
 # ============================================
 # Terminal
@@ -186,41 +341,42 @@ defaults write com.apple.screencapture type -string "png"
 defaults write com.apple.screencapture disable-shadow -bool true
 
 # ============================================
-# Keyboard (additional)
-# ============================================
-
-# Disable press-and-hold for accent characters (enable key repeat)
-defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
-
-# ============================================
 # Hot Corners
 # ============================================
 
-# Top-left: Mission Control
-defaults write com.apple.dock wvous-tl-corner -int 2
+# Top-left: None
+defaults write com.apple.dock wvous-tl-corner -int 0
 defaults write com.apple.dock wvous-tl-modifier -int 0
 
-# Top-right: Desktop
-defaults write com.apple.dock wvous-tr-corner -int 4
+# Top-right: Quick Note
+defaults write com.apple.dock wvous-tr-corner -int 14
 defaults write com.apple.dock wvous-tr-modifier -int 0
 
-# Bottom-left: Screen Saver
-defaults write com.apple.dock wvous-bl-corner -int 5
+# Bottom-left: None
+defaults write com.apple.dock wvous-bl-corner -int 0
 defaults write com.apple.dock wvous-bl-modifier -int 0
 
-# Bottom-right: None
-defaults write com.apple.dock wvous-br-corner -int 0
+# Bottom-right: Screen Saver
+defaults write com.apple.dock wvous-br-corner -int 5
 defaults write com.apple.dock wvous-br-modifier -int 0
+
+# ============================================
+# Lock Screen
+# ============================================
+
+# Require password immediately after sleep/screensaver
+defaults write com.apple.screensaver askForPassword -int 1
+defaults write com.apple.screensaver askForPasswordDelay -int 0
 
 # ============================================
 # Energy & Display
 # ============================================
 
-# Battery: display sleep after 5 minutes
-sudo pmset -b displaysleep 5
+# Battery: display sleep after 30 minutes
+sudo pmset -b displaysleep 30
 
-# Charger: display sleep after 10 minutes
-sudo pmset -c displaysleep 10
+# Charger: display sleep after 60 minutes
+sudo pmset -c displaysleep 60
 
 # Charger: system never sleeps
 sudo pmset -c sleep 0

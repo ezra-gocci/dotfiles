@@ -58,11 +58,41 @@
     type: bool
     value: false
 
+# ═══ Appearance ════════════════════════════════════════════
+
+- name: Set appearance to Auto (light/dark)
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleInterfaceStyleSwitchesAutomatically
+    type: bool
+    value: true
+
+- name: Set sidebar icon size to Small
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: NSTableViewDefaultSizeMode
+    type: int
+    value: 1
+
+- name: "Scroll bar: jump to spot clicked"
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleScrollerPagingBehavior
+    type: int
+    value: 1
+
 # ═══ Trackpad & Keyboard ═════════════════════════════════
 
 - name: Enable tap to click (trackpad)
   community.general.osx_defaults:
     domain: com.apple.driver.AppleBluetoothMultitouch.trackpad
+    key: Clicking
+    type: bool
+    value: true
+
+- name: Enable tap to click (internal trackpad)
+  community.general.osx_defaults:
+    domain: com.apple.AppleMultitouchTrackpad
     key: Clicking
     type: bool
     value: true
@@ -73,6 +103,48 @@
     key: com.apple.mouse.tapBehavior
     type: int
     value: 1
+
+- name: "Trackpad: set firm click threshold"
+  community.general.osx_defaults:
+    domain: com.apple.AppleMultitouchTrackpad
+    key: FirstClickThreshold
+    type: int
+    value: 2
+
+- name: "Trackpad: set firm secondary click threshold"
+  community.general.osx_defaults:
+    domain: com.apple.AppleMultitouchTrackpad
+    key: SecondClickThreshold
+    type: int
+    value: 2
+
+- name: "Trackpad: enable three-finger drag"
+  community.general.osx_defaults:
+    domain: com.apple.AppleMultitouchTrackpad
+    key: TrackpadThreeFingerDrag
+    type: bool
+    value: true
+
+- name: "Trackpad: enable three-finger drag (bluetooth)"
+  community.general.osx_defaults:
+    domain: com.apple.driver.AppleBluetoothMultitouch.trackpad
+    key: TrackpadThreeFingerDrag
+    type: bool
+    value: true
+
+- name: "Trackpad: set tracking speed"
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: com.apple.trackpad.scaling
+    type: float
+    value: 1.5
+
+- name: Enable spring-loading
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: com.apple.springing.enabled
+    type: bool
+    value: true
 
 - name: Set fast keyboard repeat rate
   community.general.osx_defaults:
@@ -101,6 +173,67 @@
     key: ApplePressAndHoldEnabled
     type: bool
     value: false
+
+- name: "Globe key: Change Input Source"
+  community.general.osx_defaults:
+    domain: com.apple.HIToolbox
+    key: AppleFnUsageType
+    type: int
+    value: 1
+
+# ═══ Input Sources ═════════════════════════════════════════
+
+- name: Configure keyboard input sources (ABC, Russian-PC, Armenian-HM QWERTY)
+  ansible.builtin.shell: |
+    defaults write com.apple.HIToolbox AppleEnabledInputSources -array \
+      '{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = 252; "KeyboardLayout Name" = ABC; }' \
+      '{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = 19458; "KeyboardLayout Name" = RussianWin; }' \
+      '{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = -28161; "KeyboardLayout Name" = "Armenian-HM QWERTY"; }' \
+      '{ "Bundle ID" = "com.apple.CharacterPaletteIM"; InputSourceKind = "Non Keyboard Input Method"; }' \
+      '{ "Bundle ID" = "com.apple.inputmethod.EmojiFunctionRowItem"; InputSourceKind = "Non Keyboard Input Method"; }'
+  changed_when: true
+
+# ═══ Language & Region ═════════════════════════════════════
+
+- name: Set preferred languages
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleLanguages
+    type: array
+    value: "{{ apple_languages }}"
+
+- name: Set locale
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleLocale
+    type: string
+    value: "{{ apple_locale }}"
+
+- name: Set measurement units to Metric
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleMeasurementUnits
+    type: string
+    value: Centimeters
+
+- name: Enable metric system
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleMetricSystem
+    type: bool
+    value: true
+
+- name: Set temperature to Celsius
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleTemperatureUnit
+    type: string
+    value: Celsius
+
+- name: "Set date format (y/M/d)"
+  ansible.builtin.shell: |
+    defaults write NSGlobalDomain AppleICUDateFormatStrings -dict 1 "{{ apple_date_format }}"
+  changed_when: true
 
 # ═══ Finder ══════════════════════════════════════════════
 
@@ -189,8 +322,50 @@
   community.general.osx_defaults:
     domain: com.apple.dock
     key: tilesize
-    type: int
+    type: float
     value: "{{ dock_tilesize }}"
+
+- name: Enable Dock magnification
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: magnification
+    type: bool
+    value: "{{ dock_magnification }}"
+
+- name: Set Dock magnification size
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: largesize
+    type: float
+    value: "{{ dock_largesize }}"
+
+- name: Set Dock position to left
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: orientation
+    type: string
+    value: "{{ dock_orientation }}"
+
+- name: Set minimize effect to Genie
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: mineffect
+    type: string
+    value: "{{ dock_mineffect }}"
+
+- name: "Title bar double-click: Zoom"
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleActionOnDoubleClick
+    type: string
+    value: Maximize
+
+- name: Minimize windows into application icon
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: minimize-to-application
+    type: bool
+    value: "{{ dock_minimize_to_application }}"
 
 - name: Disable Dock auto-rearrange Spaces
   community.general.osx_defaults:
@@ -220,6 +395,20 @@
     type: bool
     value: "{{ dock_autohide }}"
 
+- name: Animate opening applications
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: launchanim
+    type: bool
+    value: "{{ dock_launchanim }}"
+
+- name: Show indicators for open applications
+  community.general.osx_defaults:
+    domain: com.apple.dock
+    key: show-process-indicators
+    type: bool
+    value: "{{ dock_show_process_indicators }}"
+
 - name: Hide recent applications in Dock
   community.general.osx_defaults:
     domain: com.apple.dock
@@ -227,42 +416,122 @@
     type: bool
     value: "{{ dock_show_recents }}"
 
-# ═══ Safari & WebKit ═════════════════════════════════════
+# ═══ Desktop Icons ═════════════════════════════════════════
 
-- name: "Safari: disable search suggestions to Apple"
+- name: "Desktop: use stacks grouped by Kind"
+  ansible.builtin.shell: |
+    defaults write com.apple.finder DesktopViewSettings -dict-add GroupBy -string Kind
+  changed_when: true
+
+# ═══ Wallpaper ═════════════════════════════════════════════
+# Note: Macintosh dynamic wallpaper with Yellow color must be set manually
+#       via System Settings > Wallpaper (extension-based wallpaper on Tahoe)
+
+- name: "Wallpaper: reminder to set Macintosh Yellow manually"
+  ansible.builtin.debug:
+    msg: "MANUAL STEP: Set wallpaper to Macintosh (Yellow) via System Settings > Wallpaper"
+
+# ═══ Desktop & Stage Manager ═══════════════════════════════
+
+- name: Disable Stage Manager
   community.general.osx_defaults:
-    domain: com.apple.Safari
-    key: UniversalSearchEnabled
+    domain: com.apple.WindowManager
+    key: GloballyEnabled
     type: bool
     value: false
 
-- name: "Safari: suppress search suggestions"
+- name: Disable tiled window margins
   community.general.osx_defaults:
-    domain: com.apple.Safari
-    key: SuppressSearchSuggestions
+    domain: com.apple.WindowManager
+    key: EnableTiledWindowMargins
+    type: bool
+    value: false
+
+- name: Disable iPhone Widgets
+  ansible.builtin.shell: defaults write com.apple.chronod remoteWidgetsEnabled -bool false
+  changed_when: true
+
+# ═══ Window Management ═════════════════════════════════════
+
+- name: Close windows when quitting application
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: NSQuitAlwaysKeepsWindows
+    type: bool
+    value: false
+
+# ═══ Menu Bar ══════════════════════════════════════════════
+
+- name: "Menu bar: auto-hide in full screen only"
+  community.general.osx_defaults:
+    domain: NSGlobalDomain
+    key: AppleMenuBarVisibleInFullscreenOnly
     type: bool
     value: true
 
-- name: "Safari: show full URL"
+# ═══ Siri ══════════════════════════════════════════════════
+
+- name: Disable Siri
   community.general.osx_defaults:
-    domain: com.apple.Safari
-    key: ShowFullURLInSmartSearchField
+    domain: com.apple.assistant.support
+    key: "Assistant Enabled"
+    type: bool
+    value: false
+
+# ═══ Accessibility ═════════════════════════════════════════
+
+- name: "Zoom: enable scroll gesture with modifier"
+  community.general.osx_defaults:
+    domain: com.apple.universalaccess
+    key: closeViewScrollWheelToggle
     type: bool
     value: true
 
-- name: "Safari: enable Develop menu"
+- name: "Zoom: enable trackpad gesture"
   community.general.osx_defaults:
-    domain: com.apple.Safari
-    key: IncludeDevelopMenu
+    domain: com.apple.universalaccess
+    key: closeViewTrackpadGestureZoomEnabled
     type: bool
     value: true
 
-- name: "Safari: enable Web Inspector"
-  community.general.osx_defaults:
-    domain: com.apple.Safari
-    key: WebKitDeveloperExtrasEnabledPreferenceKey
-    type: bool
-    value: true
+# ═══ Display ═══════════════════════════════════════════════
+
+- name: Set display resolution to 1680x1050 (scaled)
+  ansible.builtin.shell: |
+    if command -v displayplacer >/dev/null 2>&1; then
+      DISPLAY_ID=$(displayplacer list 2>/dev/null | grep -m1 "Persistent screen id:" | awk '{print $NF}')
+      if [ -n "$DISPLAY_ID" ]; then
+        displayplacer "id:${DISPLAY_ID} res:1680x1050 scaling:on"
+      fi
+    fi
+  changed_when: true
+  failed_when: false
+
+# ═══ Login Items ═══════════════════════════════════════════
+
+- name: Add login items
+  ansible.builtin.shell: |
+    osascript -e 'tell application "System Events" to make login item at end with properties {path:"{{ item }}", hidden:false}' 2>/dev/null || true
+  loop: "{{ login_items }}"
+  when: item is exists
+  changed_when: true
+
+# ═══ Safari & WebKit ═════════════════════════════════════
+
+- name: "Safari: configure preferences"
+  ansible.builtin.shell: |
+    SAFARI_PLIST="$HOME/Library/Containers/com.apple.Safari/Data/Library/Preferences/com.apple.Safari.plist"
+    if [ -f "$SAFARI_PLIST" ]; then
+      defaults write "$SAFARI_PLIST" UniversalSearchEnabled -bool false
+      defaults write "$SAFARI_PLIST" SuppressSearchSuggestions -bool true
+      defaults write "$SAFARI_PLIST" ShowFullURLInSmartSearchField -bool true
+      defaults write "$SAFARI_PLIST" IncludeDevelopMenu -bool true
+      defaults write "$SAFARI_PLIST" WebKitDeveloperExtrasEnabledPreferenceKey -bool true
+    else
+      echo "Safari plist not found (Safari may not have been opened yet)"
+    fi
+  changed_when: true
+  failed_when: false
 
 # ═══ Terminal ════════════════════════════════════════════
 
@@ -407,6 +676,22 @@
   community.general.osx_defaults:
     domain: com.apple.dock
     key: wvous-br-modifier
+    type: int
+    value: 0
+
+# ═══ Lock Screen ═══════════════════════════════════════════
+
+- name: Require password immediately after sleep/screensaver
+  community.general.osx_defaults:
+    domain: com.apple.screensaver
+    key: askForPassword
+    type: int
+    value: 1
+
+- name: No delay for password requirement
+  community.general.osx_defaults:
+    domain: com.apple.screensaver
+    key: askForPasswordDelay
     type: int
     value: 0
 

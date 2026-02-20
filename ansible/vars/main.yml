@@ -22,36 +22,60 @@ neovim_setup: "custom"
 # ─── Dock ─────────────────────────────────────────────────
 # Apps added to Dock in this order (after removing all defaults)
 dock_apps:
-  - /System/Applications/Launchpad.app
-  - /Applications/WezTerm.app
+  - /System/Library/CoreServices/Finder.app
+  - /Applications/Safari.app
   - /Applications/Google Chrome.app
-  - /Applications/Claude.app
-  - /Applications/Obsidian.app
-  - /Applications/iTerm.app
   - /Applications/Zed.app
-  - /System/Applications/System Settings.app
+  - /Applications/Obsidian.app
 
-dock_tilesize: 48
+dock_tilesize: 36
+dock_magnification: true
+dock_largesize: 84
+dock_orientation: left
+dock_mineffect: genie
 dock_autohide: true
-dock_show_recents: false
 dock_autohide_delay: 0
 dock_autohide_time_modifier: 0
+dock_show_recents: false
+dock_minimize_to_application: false
+dock_launchanim: true
+dock_show_process_indicators: true
 
 # ─── Hot Corners ──────────────────────────────────────────
 # Values: 0=None, 2=Mission Control, 3=App Windows,
 #         4=Desktop, 5=Screen Saver, 6=Disable Screen Saver,
 #         10=Put Display to Sleep, 11=Launchpad,
-#         12=Notification Center, 13=Lock Screen
-hot_corner_top_left: 2       # Mission Control
-hot_corner_top_right: 4      # Desktop
-hot_corner_bottom_left: 5    # Screen Saver
-hot_corner_bottom_right: 0   # None
+#         12=Notification Center, 13=Lock Screen, 14=Quick Note
+hot_corner_top_left: 0       # None
+hot_corner_top_right: 14     # Quick Note
+hot_corner_bottom_left: 0    # None
+hot_corner_bottom_right: 5   # Screen Saver
 
 # ─── Energy ───────────────────────────────────────────────
 # Values in minutes (0 = never)
-energy_battery_display_sleep: 5
-energy_charger_display_sleep: 10
+energy_battery_display_sleep: 30
+energy_charger_display_sleep: 60
 energy_charger_system_sleep: 0
+
+# ─── Language & Region ───────────────────────────────────
+apple_languages:
+  - en-AM
+  - ru-AM
+  - hy-AM
+apple_locale: en_AM
+apple_date_format: "y/M/d"
+
+# ─── Input Sources ───────────────────────────────────────
+# Keyboard layouts: ABC (US), Russian-PC, Armenian-HM QWERTY
+input_sources:
+  - { name: "ABC", id: 252, kind: "Keyboard Layout" }
+  - { name: "RussianWin", id: 19458, kind: "Keyboard Layout" }
+  - { name: "Armenian-HM QWERTY", id: -28161, kind: "Keyboard Layout" }
+
+# ─── Login Items ─────────────────────────────────────────
+login_items:
+  - /Applications/Claude.app
+  - /Applications/iTerm.app
 
 # ─── Config Toggles ──────────────────────────────────────
 # Set to false to skip individual config installations
