@@ -2,12 +2,12 @@
 # ═══════════════════════════════════════════════════════════
 # macOS Development Environment — Ansible Playbook
 #
-# Full run:        ansible-playbook main.yml -i inventory.yml --ask-become-pass
+# Full run:        sudo -v && ansible-playbook main.yml -i inventory.yml
 # Dry run:         ansible-playbook main.yml -i inventory.yml --check
-# Specific tags:   ansible-playbook main.yml -i inventory.yml --tags dock --ask-become-pass
+# Specific tags:   sudo -v && ansible-playbook main.yml -i inventory.yml --tags dock
 #
 # Available tags:
-#   homebrew, dotfiles, ssh, mise, git, neovim, macos, dock, claude, post-restore
+#   homebrew, touchid, dotfiles, ssh, mise, git, neovim, macos, dock, claude, post-restore
 # ═══════════════════════════════════════════════════════════
 
 - name: Configure macOS development environment
@@ -28,6 +28,10 @@
     - name: Install Homebrew packages
       ansible.builtin.import_tasks: tasks/homebrew.yml
       tags: [homebrew, packages]
+
+    - name: Enable Touch ID for sudo
+      ansible.builtin.import_tasks: tasks/touchid.yml
+      tags: [touchid, sudo, security]
 
     - name: Install dotfile configs
       ansible.builtin.import_tasks: tasks/dotfiles.yml

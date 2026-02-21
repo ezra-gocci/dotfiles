@@ -1,16 +1,13 @@
 ---
 # ─── Post-Restore Guidance ────────────────────────────────
 
-- name: SSH key recovery instructions
+- name: Touch ID and SSH status
   ansible.builtin.debug:
     msg: |
-      ═══ SSH Keys ═══
-      Your SSH keys were NOT stored in git (for security).
-      If you backed them up to iCloud:
-        1. ls ~/Library/Mobile\ Documents/com~apple~CloudDocs/mac-backup-*/
-        2. unzip ~/Library/Mobile\ Documents/com~apple~CloudDocs/mac-backup-*/ssh-keys-encrypted.zip
-        3. cp id_ed25519* ~/.ssh/ && chmod 600 ~/.ssh/id_ed25519
-        4. ssh-add ~/.ssh/id_ed25519
+      ═══ Touch ID & SSH ═══
+      Touch ID for sudo: enabled via /etc/pam.d/sudo_local
+      SSH key passphrase: stored in macOS Keychain (Touch ID unlocks)
+      To re-add key to Keychain: ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 
 - name: Repository clone commands
   ansible.builtin.debug:

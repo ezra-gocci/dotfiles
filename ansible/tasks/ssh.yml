@@ -2,7 +2,9 @@
 # ─── SSH Key Restoration ─────────────────────────────────
 #
 # Restores SSH keys from the encrypted iCloud backup created
-# by scripts/backup.sh. Prompts for the zip password.
+# by scripts/backup.sh. Prompts for the zip password, then
+# optionally adds a passphrase and stores it in macOS Keychain
+# for Touch ID integration.
 
 - name: Check if SSH key already exists
   ansible.builtin.stat:
@@ -47,10 +49,29 @@
   ansible.builtin.shell: |
     unzip -o -P "{{ zip_password.user_input }}" "{{ ssh_backup.files[0].path }}" -d "{{ ansible_facts['env'].HOME }}/.ssh/"
   no_log: true
+  register: unzip_result
   when:
     - not ssh_key.stat.exists
     - ssh_backup.files | length > 0
     - zip_password.user_input | length > 0
+
+- name: Verify SSH key was extracted
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519"
+  register: ssh_key_extracted
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
+
+- name: Fail if SSH key extraction failed
+  ansible.builtin.fail:
+    msg: "SSH key extraction failed — wrong password or corrupted zip. Re-run with --tags ssh to try again."
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
+    - not ssh_key_extracted.stat.exists
 
 - name: Set SSH private key permissions
   ansible.builtin.file:
@@ -59,6 +80,7 @@
   when:
     - not ssh_key.stat.exists
     - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
 
 - name: Set SSH public key permissions
   ansible.builtin.file:
@@ -67,6 +89,7 @@
   when:
     - not ssh_key.stat.exists
     - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
 
 - name: Set known_hosts permissions
   ansible.builtin.file:
@@ -76,13 +99,55 @@
   when:
     - not ssh_key.stat.exists
     - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
 
-- name: Add SSH key to agent
+- name: Check if SSH key has a passphrase
   ansible.builtin.shell: |
-    eval "$(ssh-agent -s)" && ssh-add "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519"
+    ssh-keygen -y -P "" -f "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519" > /dev/null 2>&1
+  register: key_no_passphrase
+  failed_when: false
+  changed_when: false
+  no_log: true
   when:
     - not ssh_key.stat.exists
     - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
+
+- name: Prompt for SSH key passphrase
+  ansible.builtin.pause:
+    prompt: "Enter the passphrase for your SSH key (will be stored in macOS Keychain for Touch ID)"
+    echo: false
+  register: ssh_passphrase
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
+    - key_no_passphrase.rc != 0
+
+- name: Add SSH key to macOS Keychain (with passphrase)
+  ansible.builtin.shell: |
+    /usr/bin/expect -c '
+      spawn ssh-add --apple-use-keychain {{ ansible_facts["env"].HOME }}/.ssh/id_ed25519
+      expect "Enter passphrase"
+      send "{{ ssh_passphrase.user_input }}\r"
+      expect eof
+    '
+  no_log: true
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
+    - key_no_passphrase.rc != 0
+    - ssh_passphrase.user_input | length > 0
+
+- name: Add SSH key to macOS Keychain (no passphrase)
+  ansible.builtin.shell: |
+    ssh-add --apple-use-keychain "{{ ansible_facts['env'].HOME }}/.ssh/id_ed25519"
+  when:
+    - not ssh_key.stat.exists
+    - ssh_backup.files | length > 0
+    - zip_password.user_input | length > 0
+    - key_no_passphrase.rc == 0
 
 - name: Test GitHub SSH connection
   ansible.builtin.shell: ssh -T git@github.com 2>&1 || true
