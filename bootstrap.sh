@@ -204,15 +204,43 @@ else
     print_warn "No requirements.yml found — skipping"
 fi
 
-# ─── Step 6: Run Ansible playbook ────────────────────────────
-print_step "Step 6: Running Ansible playbook"
+# ─── Step 6: Enable Touch ID for sudo ───────────────────────
+print_step "Step 6: Touch ID for sudo"
+
+# Authenticate once (password on first run, Touch ID on subsequent runs)
+sudo -v
+
+if [ ! -f /etc/pam.d/sudo_local ]; then
+    if [ -f /opt/homebrew/lib/pam/pam_reattach.so ]; then
+        sudo tee /etc/pam.d/sudo_local > /dev/null << 'PAM_EOF'
+auth       optional       /opt/homebrew/lib/pam/pam_reattach.so
+auth       sufficient     pam_tid.so
+PAM_EOF
+    else
+        sudo tee /etc/pam.d/sudo_local > /dev/null << 'PAM_EOF'
+auth       sufficient     pam_tid.so
+PAM_EOF
+    fi
+    print_ok "Touch ID for sudo enabled"
+else
+    print_ok "Touch ID for sudo already enabled"
+fi
+
+# Keep sudo alive in the background
+while true; do sudo -n true; sleep 50; kill -0 "$$" || exit; done 2>/dev/null &
+SUDO_KEEPALIVE_PID=$!
+
+# ─── Step 7: Run Ansible playbook ────────────────────────────
+print_step "Step 7: Running Ansible playbook"
 
 echo ""
 echo -e "  ${YELLOW}Ansible will now configure your system.${NC}"
-echo -e "  ${YELLOW}You'll be prompted for your sudo password.${NC}"
 echo ""
 
-ansible-playbook main.yml -i inventory.yml --ask-become-pass
+ansible-playbook main.yml -i inventory.yml
+
+# Clean up sudo keepalive
+kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
 
 # ─── Done ─────────────────────────────────────────────────────
 echo ""
@@ -222,9 +250,8 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo -e "  ${CYAN}Next steps:${NC}"
 echo -e "  1. Restart your terminal (or run: ${GREEN}source ~/.zshrc${NC})"
-echo -e "  2. Restore SSH keys from iCloud backup"
-echo -e "  3. Clone your repos: ${GREEN}cd ~/Code && gh auth login${NC}"
+echo -e "  2. Clone your repos: ${GREEN}cd ~/Code && gh auth login${NC}"
 echo ""
 echo -e "  ${DIM}Dotfiles: $DOTFILES_DIR${NC}"
-echo -e "  ${DIM}Re-run Ansible: cd $DOTFILES_DIR/ansible && ansible-playbook main.yml --ask-become-pass${NC}"
+echo -e "  ${DIM}Re-run Ansible: cd $DOTFILES_DIR/ansible && sudo -v && ansible-playbook main.yml${NC}"
 echo ""

@@ -1,0 +1,53 @@
+---
+# ─── Touch ID for sudo ──────────────────────────────────
+#
+# Creates /etc/pam.d/sudo_local to enable Touch ID for sudo.
+# Includes pam_reattach for tmux/screen compatibility.
+# This file persists across macOS updates.
+#
+# Note: bootstrap.sh also enables this before running Ansible.
+# This task is a safety net for standalone --tags touchid runs.
+
+- name: Check if Touch ID for sudo is already enabled
+  ansible.builtin.stat:
+    path: /etc/pam.d/sudo_local
+  register: sudo_local
+
+- name: Check if pam_reattach is available
+  ansible.builtin.stat:
+    path: /opt/homebrew/lib/pam/pam_reattach.so
+  register: pam_reattach
+
+- name: Enable Touch ID for sudo (with pam_reattach)
+  ansible.builtin.copy:
+    dest: /etc/pam.d/sudo_local
+    content: |
+      auth       optional       /opt/homebrew/lib/pam/pam_reattach.so
+      auth       sufficient     pam_tid.so
+    mode: "0444"
+    owner: root
+    group: wheel
+  become: true
+  when:
+    - not sudo_local.stat.exists
+    - pam_reattach.stat.exists
+
+- name: Enable Touch ID for sudo (without pam_reattach)
+  ansible.builtin.copy:
+    dest: /etc/pam.d/sudo_local
+    content: |
+      auth       sufficient     pam_tid.so
+    mode: "0444"
+    owner: root
+    group: wheel
+  become: true
+  when:
+    - not sudo_local.stat.exists
+    - not pam_reattach.stat.exists
+
+- name: Display Touch ID sudo status
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Touch ID for sudo: already enabled'
+         if sudo_local.stat.exists
+         else 'Touch ID for sudo: enabled' }}

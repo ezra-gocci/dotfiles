@@ -58,6 +58,8 @@ brew "lsd"
 brew "mise"
 # Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
+# PAM module for reattaching to the user's session (Touch ID in tmux)
+brew "pam-reattach"
 # Modern replacement for ps written in Rust
 brew "procs"
 # Search tool like grep and The Silver Searcher
